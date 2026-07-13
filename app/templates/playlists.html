@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block content %}
+<header class="page-header">
+  <div>
+    <p class="eyebrow">Programação</p>
+    <h1>Playlists</h1>
+  </div>
+</header>
+
+<section class="content-grid split">
+  <form class="panel form-panel" method="post" action="/playlists">
+    <h2>Criar playlist</h2>
+    <label>Nome
+      <input name="name" required placeholder="Recepcao manha">
+    </label>
+    <label>Slug opcional
+      <input name="slug" placeholder="recepcao-manha">
+    </label>
+    <button class="button primary" type="submit">Criar</button>
+  </form>
+
+  <div class="panel">
+    <div class="panel-title"><h2>Playlists</h2></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Nome</th><th>Itens</th><th>Duracao</th><th>Slug</th><th></th></tr></thead>
+        <tbody>
+          {% for playlist in playlists %}
+          <tr>
+            <td>{{ playlist.name }}</td>
+            <td>{{ playlist.items_total }}</td>
+            <td>{{ playlist.duration_seconds }}s{% if playlist.full_video_items %} + {{ playlist.full_video_items }} inteiro(s){% endif %}</td>
+            <td>{{ playlist.slug }}</td>
+            <td class="row-actions">
+              <a href="/playlists/{{ playlist.id }}">Editar</a>
+              <a href="/player/{{ playlist.slug }}" target="_blank">Player</a>
+              <form method="post" action="/playlists/{{ playlist.id }}/delete" onsubmit="return confirm('Excluir esta playlist?')">
+                <button class="link danger" type="submit">Excluir</button>
+              </form>
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="5" class="empty">Crie uma playlist e adicione videos.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+{% endblock %}

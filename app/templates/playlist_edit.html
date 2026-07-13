@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block content %}
+<header class="page-header">
+  <div>
+    <p class="eyebrow">Playlist</p>
+    <h1>{{ playlist.name }}</h1>
+  </div>
+  <div class="actions">
+    <a class="button" href="/player/{{ playlist.slug }}" target="_blank">Abrir player</a>
+    <form method="post" action="/playlists/{{ playlist.id }}/resync">
+      <button class="button primary" type="submit">Reiniciar sincronismo</button>
+    </form>
+  </div>
+</header>
+
+<section class="content-grid split">
+  <div class="stack">
+    <form class="panel form-panel" method="post" action="/playlists/{{ playlist.id }}/rename">
+      <h2>Dados</h2>
+      <label>Nome
+        <input name="name" value="{{ playlist.name }}" required>
+      </label>
+      <label>Slug
+        <input name="slug" value="{{ playlist.slug }}" required>
+      </label>
+      <button class="button" type="submit">Salvar</button>
+    </form>
+
+    <form class="panel form-panel" method="post" action="/playlists/{{ playlist.id }}/items">
+      <h2>Adicionar video</h2>
+      <label>Video
+        <select name="video_id" required>
+          {% for video in videos %}
+          <option value="{{ video.id }}">{{ video.title }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>Duração no ar em segundos
+        <input name="duration_seconds" type="number" min="1" value="30" required>
+      </label>
+      <label class="checkbox">
+        <input type="checkbox" name="play_until_end" value="1">
+        Tocar video inteiro
+      </label>
+      <button class="button primary" type="submit" {% if not videos %}disabled{% endif %}>Adicionar</button>
+    </form>
+  </div>
+
+  <div class="panel">
+    <div class="panel-title">
+      <h2>Linha do tempo</h2>
+      <span>{{ total_seconds }}s fixos{% if full_video_items %} + {{ full_video_items }} video(s) inteiro(s){% endif %}</span>
+    </div>
+    <div class="playlist-items">
+      {% for item in items %}
+      <div class="playlist-row">
+        <form method="post" action="/playlists/{{ playlist.id }}/items/{{ item.id }}/update" class="playlist-edit-form">
+          <strong>{{ item.video_title }}</strong>
+          <label>Ordem
+            <input name="position" type="number" min="1" value="{{ item.position }}">
+          </label>
+          <label>Segundos
+            <input name="duration_seconds" type="number" min="1" value="{{ item.duration_seconds }}">
+          </label>
+          <label class="checkbox">
+            <input type="checkbox" name="play_until_end" value="1" {% if item.play_until_end %}checked{% endif %}>
+            Tocar inteiro
+          </label>
+          <button class="button" type="submit">Atualizar</button>
+        </form>
+        <form method="post" action="/playlists/{{ playlist.id }}/items/{{ item.id }}/delete" onsubmit="return confirm('Remover item da playlist?')">
+          <button class="button danger" type="submit">Remover</button>
+        </form>
+      </div>
+      {% else %}
+      <p class="empty">Adicione videos para habilitar o player sincronizado.</p>
+      {% endfor %}
+    </div>
+    <form class="delete-form" method="post" action="/playlists/{{ playlist.id }}/delete" onsubmit="return confirm('Excluir playlist?')">
+      <button class="link danger" type="submit">Excluir playlist</button>
+    </form>
+  </div>
+</section>
+{% endblock %}

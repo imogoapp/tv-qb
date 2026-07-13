@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block content %}
+<header class="page-header">
+  <div>
+    <p class="eyebrow">Operação</p>
+    <h1>Painel de controle</h1>
+  </div>
+  <div class="actions">
+    <a class="button" href="/videos">Enviar video</a>
+    <a class="button primary" href="/playlists">Nova playlist</a>
+  </div>
+</header>
+
+<section class="metric-grid">
+  <div class="metric"><span>TVs</span><strong>{{ screens_count }}</strong></div>
+  <div class="metric"><span>Grupos</span><strong>{{ groups_count }}</strong></div>
+  <div class="metric"><span>Videos</span><strong>{{ videos_count }}</strong></div>
+  <div class="metric"><span>Playlists</span><strong>{{ playlists_count }}</strong></div>
+</section>
+
+<section class="content-grid two">
+  <div class="panel">
+    <div class="panel-title">
+      <h2>TVs cadastradas</h2>
+      <a href="/screens">Gerenciar</a>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>TV</th><th>Grupo</th><th>Conteúdo efetivo</th><th>Player</th></tr>
+        </thead>
+        <tbody>
+          {% for screen in screens %}
+          <tr>
+            <td>{{ screen.name }}</td>
+            <td>{{ screen.group_name or '-' }}</td>
+            <td>{{ screen.playlist_name or screen.inherited_playlist_name or '-' }}</td>
+            <td><a href="{{ base_url }}/player/{{ screen.slug }}" target="_blank">/player/{{ screen.slug }}</a></td>
+          </tr>
+          {% else %}
+          <tr><td colspan="4" class="empty">Cadastre uma TV para gerar uma URL de player.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-title">
+      <h2>Grupos</h2>
+      <a href="/groups">Gerenciar</a>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Grupo</th><th>TVs</th><th>Playlist</th><th>Player</th></tr>
+        </thead>
+        <tbody>
+          {% for group in groups %}
+          <tr>
+            <td>{{ group.name }}</td>
+            <td>{{ group.screens_total }}</td>
+            <td>{{ group.playlist_name or '-' }}</td>
+            <td><a href="{{ base_url }}/player/{{ group.slug }}" target="_blank">/player/{{ group.slug }}</a></td>
+          </tr>
+          {% else %}
+          <tr><td colspan="4" class="empty">Crie um grupo para controlar varias TVs juntas.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+{% endblock %}

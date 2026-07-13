@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block content %}
+<header class="page-header">
+  <div>
+    <p class="eyebrow">Dispositivos</p>
+    <h1>TVs</h1>
+  </div>
+</header>
+
+<section class="content-grid split">
+  <form class="panel form-panel" method="post" action="/screens">
+    <h2>Cadastrar TV</h2>
+    <label>Nome
+      <input name="name" required placeholder="TV Recepcao 01">
+    </label>
+    <label>Slug
+      <input name="slug" placeholder="recepcao-01">
+    </label>
+    <label>Grupo
+      <select name="group_id">
+        <option value="">Sem grupo</option>
+        {% for group in groups %}
+        <option value="{{ group.id }}">{{ group.name }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Playlist propria
+      <select name="playlist_id">
+        <option value="">Herdar do grupo</option>
+        {% for playlist in playlists %}
+        <option value="{{ playlist.id }}">{{ playlist.name }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <button class="button primary" type="submit">Cadastrar</button>
+  </form>
+
+  <div class="panel">
+    <div class="panel-title"><h2>TVs cadastradas</h2></div>
+    <div class="group-list">
+      {% for screen in screens %}
+      <div class="edit-card">
+        <form method="post" action="/screens/{{ screen.id }}/update">
+          <div class="edit-grid">
+            <label>Nome<input name="name" value="{{ screen.name }}" required></label>
+            <label>Slug<input name="slug" value="{{ screen.slug }}" required></label>
+            <label>Grupo
+              <select name="group_id">
+                <option value="">Sem grupo</option>
+                {% for group in groups %}
+                <option value="{{ group.id }}" {% if screen.group_id == group.id %}selected{% endif %}>{{ group.name }}</option>
+                {% endfor %}
+              </select>
+            </label>
+            <label>Playlist
+              <select name="playlist_id">
+                <option value="">Herdar do grupo</option>
+                {% for playlist in playlists %}
+                <option value="{{ playlist.id }}" {% if screen.playlist_id == playlist.id %}selected{% endif %}>{{ playlist.name }}</option>
+                {% endfor %}
+              </select>
+            </label>
+            <label class="checkbox"><input type="checkbox" name="enabled" value="1" {% if screen.enabled %}checked{% endif %}> Ativa</label>
+          </div>
+          <div class="card-footer">
+            <span>{{ screen.group_name or 'Sem grupo' }}</span>
+            <a href="{{ base_url }}/player/{{ screen.slug }}" target="_blank">/player/{{ screen.slug }}</a>
+            <button class="button" type="submit">Salvar</button>
+          </div>
+        </form>
+        <form class="delete-inline" method="post" action="/screens/{{ screen.id }}/delete" onsubmit="return confirm('Excluir esta TV?')">
+          <button class="link danger" type="submit">Excluir TV</button>
+        </form>
+      </div>
+      {% else %}
+      <p class="empty">Nenhuma TV cadastrada.</p>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endblock %}

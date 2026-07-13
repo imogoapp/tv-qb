@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Player {{ slug }}</title>
+  <link rel="stylesheet" href="/static/css/app.css">
+</head>
+<body class="player-body">
+  <main class="player-stage" data-slug="{{ slug }}">
+    <video id="video" muted autoplay playsinline preload="auto"></video>
+    <video id="preload" muted playsinline preload="auto" aria-hidden="true"></video>
+    <div id="overlay" class="player-overlay">
+      <strong>Conectando</strong>
+      <span>/player/{{ slug }}</span>
+    </div>
+  </main>
+  <script src="/static/js/player.js"></script>
+</body>
+</html>

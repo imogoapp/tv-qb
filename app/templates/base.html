@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TV quadraimob</title>
+  <link rel="stylesheet" href="/static/css/app.css">
+</head>
+<body>
+  <div class="shell">
+    <header class="topbar">
+      <a class="brand" href="/">
+        <span class="brand-mark">TV</span>
+        <span>
+          <strong>quadraimob</strong>
+        </span>
+      </a>
+      <nav class="nav">
+        <a class="{{ 'active' if path == '/' else '' }}" href="/">Painel</a>
+        <a class="{{ 'active' if path.startswith('/screens') else '' }}" href="/screens">TVs</a>
+        <a class="{{ 'active' if path.startswith('/groups') else '' }}" href="/groups">Grupos</a>
+        <a class="{{ 'active' if path.startswith('/videos') else '' }}" href="/videos">Videos</a>
+        <a class="{{ 'active' if path.startswith('/playlists') else '' }}" href="/playlists">Playlists</a>
+      </nav>
+      <div class="topbar-stats">{{ screens_count }} TVs / {{ videos_count }} videos / {{ playlists_count }} playlists</div>
+    </header>
+    <main class="main">
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+</body>
+</html>

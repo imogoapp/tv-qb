@@ -1,0 +1,6 @@
+*.db
+_*
+.venv/
+__pycache__/
+*.py[cod]
+*.mp4
