@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block content %}
+<header class="page-header">
+  <div>
+    <p class="eyebrow">Biblioteca</p>
+    <h1>Mídias</h1>
+  </div>
+</header>
+
+<section class="content-grid {% if can.media %}split{% endif %}">
+  {% if can.media %}
+  <form class="panel form-panel" method="post" action="/library" enctype="multipart/form-data" data-loading="Enviando mídia...">
+    <h2>Enviar mídia</h2>
+    <label>Título
+      <input name="title" placeholder="Campanha institucional">
+    </label>
+    <label>Slug opcional
+      <input name="slug" placeholder="campanha-institucional">
+    </label>
+    <label>Arquivo
+      <input id="media-file" name="file" type="file" accept="{{ accept }}" required>
+    </label>
+    <label id="image-duration-field" hidden>Tempo de exibição padrão (segundos)
+      <input name="default_duration_seconds" type="number" min="1" value="{{ default_image_seconds }}">
+    </label>
+    <p class="hint">
+      Imagens: JPG, PNG, WEBP, GIF e BMP. Vídeos: MP4, WEBM, OGV, MOV, MKV e outros.
+      O tempo de cada item pode ser ajustado depois, dentro da playlist.
+      Cada mídia também tem um player próprio: <code>/video/slug</code> ou <code>/image/slug</code>.
+    </p>
+    <button class="button primary" type="submit">Enviar</button>
+  </form>
+  {% endif %}
+
+  <div class="panel">
+    <div class="panel-title"><h2>Arquivos</h2><span>{{ media|length }}</span></div>
+    <div class="table-wrap">
+      <table class="responsive">
+        <thead><tr><th></th><th>Título</th><th>Tipo</th><th>Duração padrão</th><th>Tamanho</th><th></th></tr></thead>
+        <tbody>
+          {% for item in media %}
+          <tr>
+            <td class="thumb-cell" data-label="">
+              {% if item.media_type == 'image' %}
+              <img class="thumb" src="/media/{{ item.filename }}" alt="" loading="lazy">
+              {% else %}
+              <video class="thumb" src="/media/{{ item.filename }}#t=0.5" preload="metadata" muted playsinline></video>
+              {% endif %}
+            </td>
+            <td data-label="Título">
+              <span class="cell-main">{{ item.title }}<span class="sub">{{ item.original_filename }}</span></span>
+            </td>
+            <td data-label="Tipo">
+              <span class="badge {{ item.media_type }}">{{ 'Imagem' if item.media_type == 'image' else 'Vídeo' }}</span>
+              {% if not item.web_safe %}
+              <span class="badge warn" title="Este formato depende do codec e pode não tocar nas TVs. Se não tocar, converta para MP4 (H.264).">Verificar</span>
+              {% endif %}
+            </td>
+            <td data-label="Duração padrão">
+              {% if item.default_duration_seconds %}{{ item.default_duration_seconds }}s{% else %}-{% endif %}
+            </td>
+            <td data-label="Tamanho">{{ (item.size_bytes / 1024 / 1024) | round(1) }} MB</td>
+            <td class="row-actions">
+              <a class="button sm" href="/media/{{ item.filename }}" target="_blank">Abrir</a>
+              <a class="button sm" href="/{{ item.media_type }}/{{ item.slug }}" target="_blank" title="/{{ item.media_type }}/{{ item.slug }}">Player</a>
+              {% if can.media %}
+              <form method="post" action="/library/{{ item.id }}/delete" data-confirm="Ela também sai das playlists que a usam." data-confirm-title="Excluir esta mídia?" data-confirm-button="Excluir">
+                <button class="button sm danger" type="submit">Excluir</button>
+              </form>
+              {% endif %}
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="6" class="empty">Nenhuma mídia enviada.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<script>
+  (function () {
+    var imageExtensions = {{ image_extensions | tojson }};
+    var fileInput = document.getElementById("media-file");
+    var durationField = document.getElementById("image-duration-field");
+    if (!fileInput || !durationField) {
+      return;
+    }
+
+    fileInput.addEventListener("change", function () {
+      var name = (fileInput.files[0] && fileInput.files[0].name || "").toLowerCase();
+      var dot = name.lastIndexOf(".");
+      var ext = dot >= 0 ? name.slice(dot) : "";
+      durationField.hidden = imageExtensions.indexOf(ext) === -1;
+    });
+  }());
+</script>
+{% endblock %}

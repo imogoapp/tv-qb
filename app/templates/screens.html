@@ -7,7 +7,8 @@
   </div>
 </header>
 
-<section class="content-grid split">
+<section class="content-grid {% if can.screens %}split{% endif %}">
+  {% if can.screens %}
   <form class="panel form-panel" method="post" action="/screens">
     <h2>Cadastrar TV</h2>
     <label>Nome
@@ -34,43 +35,48 @@
     </label>
     <button class="button primary" type="submit">Cadastrar</button>
   </form>
+  {% endif %}
 
   <div class="panel">
-    <div class="panel-title"><h2>TVs cadastradas</h2></div>
+    <div class="panel-title"><h2>TVs cadastradas</h2><span>{{ screens|length }}</span></div>
     <div class="group-list">
       {% for screen in screens %}
       <div class="edit-card">
         <form method="post" action="/screens/{{ screen.id }}/update">
-          <div class="edit-grid">
-            <label>Nome<input name="name" value="{{ screen.name }}" required></label>
-            <label>Slug<input name="slug" value="{{ screen.slug }}" required></label>
-            <label>Grupo
-              <select name="group_id">
-                <option value="">Sem grupo</option>
-                {% for group in groups %}
-                <option value="{{ group.id }}" {% if screen.group_id == group.id %}selected{% endif %}>{{ group.name }}</option>
-                {% endfor %}
-              </select>
-            </label>
-            <label>Playlist
-              <select name="playlist_id">
-                <option value="">Herdar do grupo</option>
-                {% for playlist in playlists %}
-                <option value="{{ playlist.id }}" {% if screen.playlist_id == playlist.id %}selected{% endif %}>{{ playlist.name }}</option>
-                {% endfor %}
-              </select>
-            </label>
-            <label class="checkbox"><input type="checkbox" name="enabled" value="1" {% if screen.enabled %}checked{% endif %}> Ativa</label>
-          </div>
+          <fieldset class="plain" {% if not can.screens %}disabled{% endif %}>
+            <div class="edit-grid">
+              <label>Nome<input name="name" value="{{ screen.name }}" required></label>
+              <label>Slug<input name="slug" value="{{ screen.slug }}" required></label>
+              <label>Grupo
+                <select name="group_id">
+                  <option value="">Sem grupo</option>
+                  {% for group in groups %}
+                  <option value="{{ group.id }}" {% if screen.group_id == group.id %}selected{% endif %}>{{ group.name }}</option>
+                  {% endfor %}
+                </select>
+              </label>
+              <label>Playlist
+                <select name="playlist_id">
+                  <option value="">Herdar do grupo</option>
+                  {% for playlist in playlists %}
+                  <option value="{{ playlist.id }}" {% if screen.playlist_id == playlist.id %}selected{% endif %}>{{ playlist.name }}</option>
+                  {% endfor %}
+                </select>
+              </label>
+              <label class="checkbox"><input type="checkbox" name="enabled" value="1" {% if screen.enabled %}checked{% endif %}> Ativa</label>
+            </div>
+          </fieldset>
           <div class="card-footer">
             <span>{{ screen.group_name or 'Sem grupo' }}</span>
             <a href="{{ base_url }}/player/{{ screen.slug }}" target="_blank">/player/{{ screen.slug }}</a>
-            <button class="button" type="submit">Salvar</button>
+            {% if can.screens %}<button class="button" type="submit">Salvar</button>{% endif %}
           </div>
         </form>
-        <form class="delete-inline" method="post" action="/screens/{{ screen.id }}/delete" onsubmit="return confirm('Excluir esta TV?')">
+        {% if can.screens %}
+        <form class="delete-inline" method="post" action="/screens/{{ screen.id }}/delete" data-confirm="O endereço /player/{{ screen.slug }} deixa de funcionar." data-confirm-title="Excluir esta TV?" data-confirm-button="Excluir">
           <button class="link danger" type="submit">Excluir TV</button>
         </form>
+        {% endif %}
       </div>
       {% else %}
       <p class="empty">Nenhuma TV cadastrada.</p>

@@ -6,14 +6,17 @@
     <h1>{{ playlist.name }}</h1>
   </div>
   <div class="actions">
-    <a class="button" href="/player/{{ playlist.slug }}" target="_blank">Abrir player</a>
+    <a class="button" href="/playlist/{{ playlist.slug }}" target="_blank">Abrir player</a>
+    {% if can.playlists %}
     <form method="post" action="/playlists/{{ playlist.id }}/resync">
       <button class="button primary" type="submit">Reiniciar sincronismo</button>
     </form>
+    {% endif %}
   </div>
 </header>
 
-<section class="content-grid split">
+<section class="content-grid {% if can.playlists %}split{% endif %}">
+  {% if can.playlists %}
   <div class="stack">
     <form class="panel form-panel" method="post" action="/playlists/{{ playlist.id }}/rename">
       <h2>Dados</h2>
@@ -27,58 +30,147 @@
     </form>
 
     <form class="panel form-panel" method="post" action="/playlists/{{ playlist.id }}/items">
-      <h2>Adicionar video</h2>
-      <label>Video
-        <select name="video_id" required>
-          {% for video in videos %}
-          <option value="{{ video.id }}">{{ video.title }}</option>
-          {% endfor %}
+      <h2>Adicionar mídia</h2>
+      <label>Mídia
+        <select id="media-select" name="media_id" required>
+          {% if images %}
+          <optgroup label="Imagens">
+            {% for media in images %}
+            <option value="{{ media.id }}" data-type="image" data-duration="{{ media.default_duration_seconds or default_image_seconds }}">{{ media.title }}</option>
+            {% endfor %}
+          </optgroup>
+          {% endif %}
+          {% if videos %}
+          <optgroup label="Vídeos">
+            {% for media in videos %}
+            <option value="{{ media.id }}" data-type="video" data-duration="{{ media.default_duration_seconds or default_video_seconds }}">{{ media.title }}</option>
+            {% endfor %}
+          </optgroup>
+          {% endif %}
         </select>
       </label>
       <label>Duração no ar em segundos
-        <input name="duration_seconds" type="number" min="1" value="30" required>
+        <input id="media-duration" name="duration_seconds" type="number" min="1" value="{{ default_image_seconds }}" required>
       </label>
-      <label class="checkbox">
+      <label id="play-full-field" class="checkbox" hidden>
         <input type="checkbox" name="play_until_end" value="1">
-        Tocar video inteiro
+        Tocar vídeo inteiro
       </label>
-      <button class="button primary" type="submit" {% if not videos %}disabled{% endif %}>Adicionar</button>
+      <button class="button primary" type="submit" {% if not (images or videos) %}disabled{% endif %}>Adicionar</button>
     </form>
   </div>
+  {% endif %}
 
-  <div class="panel">
+  <div class="panel timeline" id="timeline" data-editable="{{ '1' if can.playlists else '0' }}"
+       data-save-url="/playlists/{{ playlist.id }}/items/save">
     <div class="panel-title">
       <h2>Linha do tempo</h2>
-      <span>{{ total_seconds }}s fixos{% if full_video_items %} + {{ full_video_items }} video(s) inteiro(s){% endif %}</span>
+      <span id="timeline-total">{{ total_seconds }}s fixos{% if full_video_items %} + {{ full_video_items }} vídeo(s) inteiro(s){% endif %}</span>
     </div>
-    <div class="playlist-items">
+    {% if can.playlists and items %}
+    <p class="hint drag-hint">
+      <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h.01M8 12h.01M8 18h.01M16 6h.01M16 12h.01M16 18h.01"/></svg>
+      <span>Arraste pelo ícone de pontos para mudar a ordem, ajuste os tempos e clique em <strong>Salvar alterações</strong>.</span>
+    </p>
+    {% endif %}
+
+    <ol class="timeline-list" id="timeline-list">
       {% for item in items %}
-      <div class="playlist-row">
-        <form method="post" action="/playlists/{{ playlist.id }}/items/{{ item.id }}/update" class="playlist-edit-form">
-          <strong>{{ item.video_title }}</strong>
-          <label>Ordem
-            <input name="position" type="number" min="1" value="{{ item.position }}">
-          </label>
-          <label>Segundos
-            <input name="duration_seconds" type="number" min="1" value="{{ item.duration_seconds }}">
-          </label>
-          <label class="checkbox">
-            <input type="checkbox" name="play_until_end" value="1" {% if item.play_until_end %}checked{% endif %}>
-            Tocar inteiro
-          </label>
-          <button class="button" type="submit">Atualizar</button>
-        </form>
-        <form method="post" action="/playlists/{{ playlist.id }}/items/{{ item.id }}/delete" onsubmit="return confirm('Remover item da playlist?')">
-          <button class="button danger" type="submit">Remover</button>
-        </form>
-      </div>
-      {% else %}
-      <p class="empty">Adicione videos para habilitar o player sincronizado.</p>
+      <li class="timeline-item" data-id="{{ item.id }}" data-type="{{ item.media_type }}">
+        {% if can.playlists %}
+        <button class="drag-handle" type="button" aria-label="Arrastar para reordenar" title="Arraste para reordenar">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5h.01M9 12h.01M9 19h.01M15 5h.01M15 12h.01M15 19h.01"/></svg>
+        </button>
+        {% endif %}
+        <span class="position" aria-hidden="true">{{ loop.index }}</span>
+        <div class="item-title">
+          {% if item.media_type == 'image' %}
+          <img class="thumb" src="/media/{{ item.filename }}" alt="" loading="lazy">
+          {% else %}
+          <video class="thumb" src="/media/{{ item.filename }}#t=0.5" preload="metadata" muted playsinline></video>
+          {% endif %}
+          <div>
+            <strong>{{ item.media_title }}</strong>
+            <span class="badge {{ item.media_type }}">{{ 'Imagem' if item.media_type == 'image' else 'Vídeo' }}</span>
+          </div>
+        </div>
+        <div class="item-fields">
+        <label class="seconds">Segundos
+          <input class="js-seconds" type="number" min="1" max="86400" inputmode="numeric" value="{{ item.duration_seconds }}" {% if not can.playlists %}disabled{% endif %}>
+        </label>
+        {% if item.media_type == 'video' %}
+        <label class="checkbox full">
+          <input class="js-full" type="checkbox" {% if item.play_until_end %}checked{% endif %} {% if not can.playlists %}disabled{% endif %}>
+          Tocar inteiro
+        </label>
+        {% else %}
+        <span class="sub full">Tempo fixo</span>
+        {% endif %}
+        {% if can.playlists %}
+        <div class="item-actions">
+          <button class="icon-button" type="button" data-move="up" aria-label="Mover para cima" title="Mover para cima">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 15l6-6 6 6"/></svg>
+          </button>
+          <button class="icon-button" type="button" data-move="down" aria-label="Mover para baixo" title="Mover para baixo">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+          </button>
+          <button class="icon-button danger" type="button" data-remove aria-label="Remover da playlist" title="Remover da playlist">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></svg>
+          </button>
+        </div>
+        {% endif %}
+        </div>
+      </li>
       {% endfor %}
+    </ol>
+    <p class="empty" id="timeline-empty" {% if items %}hidden{% endif %}>Adicione imagens ou vídeos para habilitar o player sincronizado.</p>
+
+    {% if can.playlists %}
+    <div class="save-bar" id="save-bar" data-state="clean" {% if not items %}hidden{% endif %}>
+      <span class="save-status" id="save-status" role="status">Tudo salvo</span>
+      <div class="actions">
+        <button class="button" type="button" id="discard-btn" disabled>Descartar</button>
+        <button class="button primary" type="button" id="save-btn" disabled>
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h11l3 3v13H5z"/><path d="M8 4v5h7V4M8 20v-6h8v6"/></svg>
+          Salvar alterações
+        </button>
+      </div>
     </div>
-    <form class="delete-form" method="post" action="/playlists/{{ playlist.id }}/delete" onsubmit="return confirm('Excluir playlist?')">
+    <form class="delete-form" method="post" action="/playlists/{{ playlist.id }}/delete" data-confirm="Os itens dela serão removidos e as TVs que a usam ficarão sem conteúdo." data-confirm-title="Excluir esta playlist?" data-confirm-button="Excluir">
       <button class="link danger" type="submit">Excluir playlist</button>
     </form>
+    {% endif %}
   </div>
 </section>
+
+<script>
+  (function () {
+    var select = document.getElementById("media-select");
+    var duration = document.getElementById("media-duration");
+    var playFull = document.getElementById("play-full-field");
+    if (!select || !duration || !playFull) {
+      return;
+    }
+
+    function applyDefaults() {
+      var option = select.options[select.selectedIndex];
+      if (!option) {
+        return;
+      }
+      duration.value = option.getAttribute("data-duration") || duration.value;
+      var isVideo = option.getAttribute("data-type") === "video";
+      playFull.hidden = !isVideo;
+      if (!isVideo) {
+        playFull.querySelector("input").checked = false;
+      }
+    }
+
+    select.addEventListener("change", applyDefaults);
+    applyDefaults();
+  }());
+</script>
+{% endblock %}
+{% block scripts %}
+{% if can.playlists %}<script src="/static/vendor/Sortable.min.js"></script>{% endif %}
+<script src="/static/js/playlist-edit.js"></script>
 {% endblock %}

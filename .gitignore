@@ -1,6 +1,20 @@
+# Bancos de dados (signage.db e users.db) e seus arquivos auxiliares
 *.db
-_*
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Ambiente virtual e cache do Python
 .venv/
+venv/
 __pycache__/
 *.py[cod]
-*.mp4
+
+# Arquivos enviados pelo usuario (a pasta e criada sozinha ao iniciar)
+app/media/
+
+# Sistema / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

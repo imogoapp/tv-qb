@@ -7,7 +7,8 @@
   </div>
 </header>
 
-<section class="content-grid split">
+<section class="content-grid {% if can.playlists %}split{% endif %}">
+  {% if can.playlists %}
   <form class="panel form-panel" method="post" action="/playlists">
     <h2>Criar playlist</h2>
     <label>Nome
@@ -18,29 +19,32 @@
     </label>
     <button class="button primary" type="submit">Criar</button>
   </form>
+  {% endif %}
 
   <div class="panel">
-    <div class="panel-title"><h2>Playlists</h2></div>
+    <div class="panel-title"><h2>Playlists</h2><span>{{ playlists|length }}</span></div>
     <div class="table-wrap">
-      <table>
+      <table class="responsive">
         <thead><tr><th>Nome</th><th>Itens</th><th>Duracao</th><th>Slug</th><th></th></tr></thead>
         <tbody>
           {% for playlist in playlists %}
           <tr>
-            <td>{{ playlist.name }}</td>
-            <td>{{ playlist.items_total }}</td>
-            <td>{{ playlist.duration_seconds }}s{% if playlist.full_video_items %} + {{ playlist.full_video_items }} inteiro(s){% endif %}</td>
-            <td>{{ playlist.slug }}</td>
+            <td data-label="Nome">{{ playlist.name }}</td>
+            <td data-label="Itens">{{ playlist.items_total }}</td>
+            <td data-label="Duração">{{ playlist.duration_seconds }}s{% if playlist.full_video_items %} + {{ playlist.full_video_items }} inteiro(s){% endif %}</td>
+            <td data-label="Slug">{{ playlist.slug }}</td>
             <td class="row-actions">
-              <a href="/playlists/{{ playlist.id }}">Editar</a>
-              <a href="/player/{{ playlist.slug }}" target="_blank">Player</a>
-              <form method="post" action="/playlists/{{ playlist.id }}/delete" onsubmit="return confirm('Excluir esta playlist?')">
-                <button class="link danger" type="submit">Excluir</button>
+              <a class="button sm" href="/playlists/{{ playlist.id }}">{{ 'Editar' if can.playlists else 'Ver' }}</a>
+              <a class="button sm" href="/playlist/{{ playlist.slug }}" target="_blank">Player</a>
+              {% if can.playlists %}
+              <form method="post" action="/playlists/{{ playlist.id }}/delete" data-confirm="Os itens dela serão removidos e as TVs que a usam ficarão sem conteúdo." data-confirm-title="Excluir esta playlist?" data-confirm-button="Excluir">
+                <button class="button sm danger" type="submit">Excluir</button>
               </form>
+              {% endif %}
             </td>
           </tr>
           {% else %}
-          <tr><td colspan="5" class="empty">Crie uma playlist e adicione videos.</td></tr>
+          <tr><td colspan="5" class="empty">Crie uma playlist e adicione imagens e vídeos.</td></tr>
           {% endfor %}
         </tbody>
       </table>

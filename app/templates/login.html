@@ -1,0 +1,85 @@
+{% from "_macros.html" import password_field %}
+<!doctype html>
+<html lang="pt-BR" data-layout="side">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Entrar - TV Quebê</title>
+  <link rel="icon" type="image/png" href="/static/img/fav.png">
+  <link rel="stylesheet" href="/static/css/app.css">
+</head>
+<body class="auth-body">
+  <div class="auth-layout">
+    <aside class="auth-aside" aria-hidden="true">
+      <img class="auth-aside-logo" src="/static/img/tv-qb-logo.png" alt="">
+      <svg class="auth-art" viewBox="0 0 240 170" fill="none">
+        <rect x="14" y="14" width="212" height="128" rx="14"/>
+        <path d="M84 158h72M120 142v16"/>
+        <path d="M104 58v48l42-24-42-24z"/>
+        <path d="M34 34h34M172 122h34" opacity=".55"/>
+      </svg>
+      <div class="auth-copy">
+        <h2>Suas mídias, nas TVs certas.</h2>
+        <p>Envie imagens e vídeos, monte playlists e mantenha todas as TVs em sincronia.</p>
+      </div>
+      <ul class="auth-features">
+        <li>
+          <svg class="icon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M21 16l-5-5-8 8"/></svg>
+          Imagens e vídeos na mesma playlist
+        </li>
+        <li>
+          <svg class="icon" viewBox="0 0 24 24"><path d="M12 3 3 8l9 5 9-5-9-5z"/><path d="M3 13l9 5 9-5"/></svg>
+          Grupos de TVs sincronizadas
+        </li>
+        <li>
+          <svg class="icon" viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.4 8-8 9-4.6-1-8-4-8-9V6l8-3z"/><path d="M9 12l2 2 4-4"/></svg>
+          Acesso por perfil de usuário
+        </li>
+      </ul>
+    </aside>
+
+    <main class="auth-main">
+      <form class="auth-form" method="post" action="/login" autocomplete="on" id="login-form">
+        <img class="auth-logo" src="/static/img/tv-qb-logo.png" alt="TV Quebê">
+        <div class="auth-title">
+          <h1>Bem-vindo de volta</h1>
+          <p class="hint">Entre com seu usuário e senha para acessar o painel.</p>
+        </div>
+
+        {% if error %}
+        <p class="form-error" role="alert">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5M12 16.5v.01"/></svg>
+          <span>{{ error }}</span>
+        </p>
+        {% endif %}
+
+        <input type="hidden" name="next" value="{{ next }}">
+        <label>Usuário
+          <span class="field">
+            <svg class="field-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.8"/><path d="M4.5 20c.7-4 3.5-6 7.5-6s6.8 2 7.5 6"/></svg>
+            <input name="username" value="{{ username }}" autocomplete="username" autocapitalize="none" spellcheck="false" required {% if not username %}autofocus{% endif %}>
+          </span>
+        </label>
+        <label>Senha
+          {{ password_field("password", autocomplete="current-password", id="password", with_icon=true, autofocus=(username|length > 0)) }}
+          <span class="caps-warning" id="caps-warning" hidden>
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4l7 8h-4v5H9v-5H5l7-8z"/><path d="M9 20.5h6"/></svg>
+            Caps Lock está ativado
+          </span>
+        </label>
+        <label class="checkbox">
+          <input type="checkbox" name="remember" value="1" checked>
+          Manter conectado por 30 dias
+        </label>
+        <button class="button primary block lg" type="submit" id="login-submit">
+          <span class="btn-text">Entrar</span>
+          <svg class="icon btn-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          <span class="spinner" aria-hidden="true"></span>
+        </button>
+        <p class="hint auth-foot">Acesso restrito a usuários autorizados.</p>
+      </form>
+    </main>
+  </div>
+  <script src="/static/js/app.js"></script>
+</body>
+</html>

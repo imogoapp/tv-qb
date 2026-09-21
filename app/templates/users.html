@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% from "_macros.html" import password_field %}
+{% block content %}
+<header class="page-header">
+  <div>
+    <p class="eyebrow">Acesso</p>
+    <h1>Usuários</h1>
+  </div>
+</header>
+
+
+<section class="content-grid split">
+  <div class="stack">
+    <form class="panel form-panel" method="post" action="/users" autocomplete="off">
+      <h2>Novo usuário</h2>
+      <label>Usuário
+        <input name="username" placeholder="maria" pattern="[a-zA-Z0-9][a-zA-Z0-9._\-]{2,31}" autocapitalize="none" required>
+      </label>
+      <label>Nome de exibição
+        <input name="display_name" placeholder="Maria Souza" maxlength="80">
+      </label>
+      <label>Senha inicial
+        {{ password_field("password", autocomplete="new-password", minlength=min_password) }}
+      </label>
+      <label>Perfil
+        <select name="role">
+          {% for role in assignable %}
+          <option value="{{ role }}" {% if role == 'viewer' %}selected{% endif %}>{{ role_labels[role] }} ({{ role }})</option>
+          {% endfor %}
+        </select>
+      </label>
+      <p class="hint">A pessoa deverá trocar a senha no primeiro acesso.</p>
+      <button class="button primary" type="submit">Criar usuário</button>
+    </form>
+
+    <div class="panel">
+      <h2>Perfis</h2>
+      <dl class="role-list">
+        {% for role in roles %}
+        <dt><span class="badge role role-{{ role }}">{{ role }}</span></dt>
+        <dd>{{ role_descriptions[role] }}</dd>
+        {% endfor %}
+      </dl>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-title"><h2>Contas</h2><span>{{ users|length }}</span></div>
+    <div class="group-list">
+      {% for row in users %}
+      <div class="edit-card">
+        <form method="post" action="/users/{{ row.id }}/update" autocomplete="off">
+          <fieldset class="plain" {% if not row.manageable %}disabled{% endif %}>
+            <div class="card-head">
+              <strong>{{ row.username }}</strong>
+              <span class="badge role role-{{ row.role }}">{{ row.role }}</span>
+              {% if row.is_me %}<span class="badge">você</span>{% endif %}
+              {% if not row.active %}<span class="badge warn">inativo</span>{% endif %}
+            </div>
+            <div class="edit-grid">
+              <label>Nome de exibição
+                <input name="display_name" value="{{ row.display_name }}" maxlength="80">
+              </label>
+              <label>Perfil
+                <select name="role">
+                  {% for role in roles %}
+                  {% if role in assignable or role == row.role %}
+                  <option value="{{ role }}" {% if role == row.role %}selected{% endif %} {% if role not in assignable %}disabled{% endif %}>{{ role_labels[role] }} ({{ role }})</option>
+                  {% endif %}
+                  {% endfor %}
+                </select>
+              </label>
+              <label>Nova senha (opcional)
+                {{ password_field("new_password", autocomplete="new-password", minlength=min_password, required=false, placeholder="Deixe em branco para manter") }}
+              </label>
+              <label class="checkbox"><input type="checkbox" name="active" value="1" {% if row.active %}checked{% endif %}> Conta ativa</label>
+            </div>
+            <div class="card-footer">
+              <span>
+                Layout: {{ layout_labels.get(row.layout, row.layout) }}
+                · Último acesso: {{ row.last_login_at[:16].replace('T', ' ') if row.last_login_at else 'nunca' }}
+              </span>
+              {% if row.manageable %}<button class="button" type="submit">Salvar</button>{% endif %}
+            </div>
+          </fieldset>
+        </form>
+        {% if row.manageable %}
+        <form class="delete-inline" method="post" action="/users/{{ row.id }}/delete" data-confirm="O usuário {{ row.username }} perde o acesso. Isso não pode ser desfeito." data-confirm-title="Excluir usuário?" data-confirm-button="Excluir">
+          <button class="link danger" type="submit">Excluir usuário</button>
+        </form>
+        {% elif row.is_me %}
+        <p class="hint">Para trocar sua senha ou layout, use <a href="/account">Minha conta</a>.</p>
+        {% else %}
+        <p class="hint">Seu perfil não permite alterar esta conta.</p>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endblock %}

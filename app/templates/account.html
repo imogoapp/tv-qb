@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% from "_macros.html" import password_field %}
+{% block content %}
+<header class="page-header">
+  <div>
+    <p class="eyebrow">Conta</p>
+    <h1>Minha conta</h1>
+  </div>
+</header>
+
+
+<section class="content-grid two">
+  <div class="stack">
+    <form class="panel form-panel" method="post" action="/account/profile">
+      <h2>Perfil</h2>
+      <label>Usuário
+        <input value="{{ user.username }}" readonly>
+      </label>
+      <label>Nome de exibição
+        <input name="display_name" value="{{ user.display_name }}" maxlength="80" required>
+      </label>
+      <div class="role-box">
+        <span class="badge role role-{{ user.role }}">{{ role_labels[user.role] }}</span>
+        <p class="hint">{{ role_description }}</p>
+      </div>
+      <button class="button primary" type="submit">Salvar perfil</button>
+    </form>
+
+    <form class="panel form-panel" method="post" action="/account/password" autocomplete="off">
+      <h2>Trocar senha</h2>
+      <label>Senha atual
+        {{ password_field("current_password", autocomplete="current-password") }}
+      </label>
+      <label>Nova senha
+        {{ password_field("new_password", autocomplete="new-password", minlength=min_password) }}
+      </label>
+      <label>Confirmar nova senha
+        {{ password_field("confirm_password", autocomplete="new-password", minlength=min_password) }}
+      </label>
+      <p class="hint">Mínimo de {{ min_password }} caracteres. Ao trocar, os outros aparelhos conectados com esta conta precisam entrar de novo.</p>
+      <button class="button primary" type="submit">Trocar senha</button>
+    </form>
+  </div>
+
+  <form class="panel form-panel" method="post" action="/account/preferences">
+    <h2>Personalização</h2>
+    <fieldset class="choices">
+      <legend>Tipo de layout</legend>
+      <label class="choice">
+        <input type="radio" name="layout" value="side" {% if layout == 'side' %}checked{% endif %}>
+        <span class="choice-body">
+          <svg viewBox="0 0 64 44" aria-hidden="true"><rect x="1" y="1" width="62" height="42" rx="4"/><path d="M18 1v42"/><path d="M6 10h8M6 16h8M6 22h8"/><path d="M24 10h32M24 18h32M24 26h20"/></svg>
+          <strong>{{ layout_labels['side'] }}</strong>
+          <span class="hint">Menu fixo à esquerda. Melhor em telas grandes.</span>
+        </span>
+      </label>
+      <label class="choice">
+        <input type="radio" name="layout" value="top" {% if layout == 'top' %}checked{% endif %}>
+        <span class="choice-body">
+          <svg viewBox="0 0 64 44" aria-hidden="true"><rect x="1" y="1" width="62" height="42" rx="4"/><path d="M1 12h62"/><path d="M6 6.5h6M16 6.5h6M26 6.5h6"/><path d="M8 20h48M8 28h48M8 36h30"/></svg>
+          <strong>{{ layout_labels['top'] }}</strong>
+          <span class="hint">Menu em uma barra no topo, com mais largura para o conteúdo.</span>
+        </span>
+      </label>
+    </fieldset>
+    <p class="hint">A escolha fica salva na sua conta e vale em qualquer aparelho. No celular o menu sempre abre por um botão.</p>
+    <button class="button primary" type="submit">Salvar preferências</button>
+  </form>
+</section>
+{% endblock %}

@@ -4,15 +4,18 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Player {{ slug }}</title>
+  <link rel="icon" type="image/png" href="/static/img/fav.png">
   <link rel="stylesheet" href="/static/css/app.css">
 </head>
 <body class="player-body">
-  <main class="player-stage" data-slug="{{ slug }}">
-    <video id="video" muted autoplay playsinline preload="auto"></video>
+  <main class="player-stage" data-kind="{{ kind }}" data-slug="{{ slug }}" data-path="{{ player_path }}">
+    <img class="player-logo" src="/static/img/tv-qb-logo.png" alt="">
+    <video id="video" class="layer" muted autoplay playsinline preload="auto"></video>
+    <img id="image" class="layer" alt="">
     <video id="preload" muted playsinline preload="auto" aria-hidden="true"></video>
     <div id="overlay" class="player-overlay">
       <strong>Conectando</strong>
-      <span>/player/{{ slug }}</span>
+      <span>{{ player_path }}</span>
     </div>
   </main>
   <script src="/static/js/player.js"></script>

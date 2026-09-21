@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="panel error-panel">
+  <p class="eyebrow">Erro {{ code }}</p>
+  <h1>{{ title }}</h1>
+  <p>{{ message }}</p>
+  <div class="actions">
+    <a class="button primary" href="/">Voltar ao painel</a>
+    <a class="button" href="/account">Minha conta</a>
+  </div>
+</section>
+{% endblock %}
