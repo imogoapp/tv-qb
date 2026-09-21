@@ -3,8 +3,11 @@
 
   var stage = document.querySelector(".player-stage");
   var slug = stage.getAttribute("data-slug");
+  var kind = stage.getAttribute("data-kind") || "player";
+  var playerPath = stage.getAttribute("data-path") || ("/" + kind + "/" + slug);
   var video = document.getElementById("video");
-  var preload = document.getElementById("preload");
+  var image = document.getElementById("image");
+  var preloadVideo = document.getElementById("preload");
   var overlay = document.getElementById("overlay");
 
   var serverOffsetMs = 0;
@@ -12,12 +15,16 @@
   var playlistRevision = null;
   var currentItemId = null;
   var currentIndex = -1;
+  var currentSlot = "";
+  var currentType = "";
   var currentPlayUntilEnd = false;
   var currentUrl = "";
+  var loadToken = 0;
   var pollTimer = null;
   var tickTimer = null;
   var advanceTimer = null;
-  var syncing = false;
+  var preloadImage = null;
+  var preloadImageUrl = "";
 
   function setOverlay(title, detail, visible) {
     overlay.querySelector("strong").textContent = title;
@@ -80,16 +87,30 @@
   }
 
   function locateItem(playlist, atMs) {
-    var elapsed = positiveMod(atMs - playlist.sync_epoch_ms, playlist.total_duration_ms);
+    var since = atMs - playlist.sync_epoch_ms;
+    var cycle = Math.floor(since / playlist.total_duration_ms);
+    var elapsed = positiveMod(since, playlist.total_duration_ms);
     var cursor = 0;
     for (var i = 0; i < playlist.items.length; i += 1) {
       var item = playlist.items[i];
       if (elapsed < cursor + item.duration_ms) {
-        return { item: item, offsetMs: elapsed - cursor, index: i };
+        return {
+          item: item,
+          offsetMs: elapsed - cursor,
+          remainingMs: cursor + item.duration_ms - elapsed,
+          index: i,
+          slot: cycle + ":" + i
+        };
       }
       cursor += item.duration_ms;
     }
-    return { item: playlist.items[0], offsetMs: 0, index: 0 };
+    return {
+      item: playlist.items[0],
+      offsetMs: 0,
+      remainingMs: playlist.items[0].duration_ms,
+      index: 0,
+      slot: cycle + ":0"
+    };
   }
 
   function nextItem(playlist, index) {
@@ -105,6 +126,10 @@
     });
   }
 
+  function isNaturalMode() {
+    return !!(state && state.playlist && hasNaturalPlayback(state.playlist));
+  }
+
   function clearAdvanceTimer() {
     if (advanceTimer) {
       clearTimeout(advanceTimer);
@@ -112,17 +137,74 @@
     }
   }
 
+  function setAdvanceTimer(ms, callback) {
+    clearAdvanceTimer();
+    advanceTimer = setTimeout(callback, Math.max(0, ms));
+  }
+
   function absoluteUrl(path) {
     return new URL(path, window.location.origin).toString();
   }
 
-  function loadVideo(item, offsetMs, index) {
-    var url = absoluteUrl(item.url);
-    currentItemId = item.item_id;
-    currentIndex = typeof index === "number" ? index : -1;
-    currentPlayUntilEnd = !!item.play_until_end;
-    currentUrl = url;
-    clearAdvanceTimer();
+  function itemType(item) {
+    return item.media_type === "image" ? "image" : "video";
+  }
+
+  // Mostra so a camada do tipo informado; a outra fica transparente.
+  function showLayer(type) {
+    if (type === "image") {
+      image.classList.add("active");
+      video.classList.remove("active");
+    } else if (type === "video") {
+      video.classList.add("active");
+      image.classList.remove("active");
+    } else {
+      video.classList.remove("active");
+      image.classList.remove("active");
+    }
+  }
+
+  function handleMediaError(kind) {
+    var token = loadToken;
+    setOverlay("Erro ao carregar " + kind, "Tentando novamente.", true);
+    setTimeout(function () {
+      if (token !== loadToken || !state || !state.playlist) {
+        return;
+      }
+      if (isNaturalMode()) {
+        playNextItem();
+      } else {
+        applyTimeline(true);
+      }
+    }, 2000);
+  }
+
+  function loadImage(item, offsetMs, token) {
+    var url = currentUrl;
+
+    var reveal = function () {
+      if (token !== loadToken) {
+        return;
+      }
+      video.pause();
+      showLayer("image");
+      setOverlay("", "", false);
+      if (isNaturalMode()) {
+        setAdvanceTimer(Math.max(1000, item.duration_ms - offsetMs), playNextItem);
+      }
+    };
+
+    image.onload = reveal;
+    if (image.src === url && image.complete && image.naturalWidth > 0) {
+      reveal();
+      return;
+    }
+    // Novo arquivo, ou o mesmo que falhou antes: (re)inicia o carregamento.
+    image.src = url;
+  }
+
+  function loadVideo(item, offsetMs, token) {
+    var url = currentUrl;
 
     if (video.src !== url) {
       video.src = url;
@@ -131,6 +213,9 @@
 
     var targetSeconds = currentPlayUntilEnd ? 0 : Math.max(0, offsetMs / 1000);
     var playAtPosition = function () {
+      if (token !== loadToken) {
+        return;
+      }
       try {
         if (isFinite(video.duration) && video.duration > 0) {
           targetSeconds = Math.min(targetSeconds, Math.max(0, video.duration - 0.25));
@@ -140,12 +225,18 @@
         }
       } catch (err) {}
       video.play().then(function () {
+        if (token !== loadToken) {
+          return;
+        }
+        showLayer("video");
         setOverlay("", "", false);
-        if (state && state.playlist && hasNaturalPlayback(state.playlist) && !currentPlayUntilEnd) {
-          var remainingMs = Math.max(1000, item.duration_ms - offsetMs);
-          advanceTimer = setTimeout(playNextItem, remainingMs);
+        if (isNaturalMode() && !currentPlayUntilEnd) {
+          setAdvanceTimer(Math.max(1000, item.duration_ms - offsetMs), playNextItem);
         }
       }).catch(function () {
+        if (token !== loadToken) {
+          return;
+        }
         setOverlay("Toque OK no controle remoto", "O navegador bloqueou o autoplay.", true);
       });
     };
@@ -157,6 +248,24 @@
     }
   }
 
+  function loadItem(item, offsetMs, index) {
+    loadToken += 1;
+    var token = loadToken;
+
+    currentItemId = item.item_id;
+    currentIndex = typeof index === "number" ? index : -1;
+    currentType = itemType(item);
+    currentPlayUntilEnd = currentType === "video" && !!item.play_until_end;
+    currentUrl = absoluteUrl(item.url);
+    clearAdvanceTimer();
+
+    if (currentType === "image") {
+      loadImage(item, offsetMs, token);
+    } else {
+      loadVideo(item, offsetMs, token);
+    }
+  }
+
   function playNextItem() {
     if (!state || !state.playlist || !state.playlist.items.length) {
       return;
@@ -165,18 +274,25 @@
     var playlist = state.playlist;
     var nextIndex = currentIndex >= 0 ? (currentIndex + 1) % playlist.items.length : 0;
     var item = playlist.items[nextIndex];
-    loadVideo(item, 0, nextIndex);
+    loadItem(item, 0, nextIndex);
     preloadNext(playlist, nextIndex);
   }
 
   function preloadNext(playlist, index) {
     var item = nextItem(playlist, index);
-    if (item) {
-      var url = absoluteUrl(item.url);
-      if (preload.src !== url) {
-        preload.src = url;
-        preload.load();
+    if (!item) {
+      return;
+    }
+    var url = absoluteUrl(item.url);
+    if (itemType(item) === "image") {
+      if (preloadImageUrl !== url) {
+        preloadImage = new Image();
+        preloadImage.src = url;
+        preloadImageUrl = url;
       }
+    } else if (preloadVideo.src !== url) {
+      preloadVideo.src = url;
+      preloadVideo.load();
     }
   }
 
@@ -187,45 +303,50 @@
 
     var playlist = state.playlist;
 
+    // Playlist com "tocar inteiro": cada TV avanca sozinha, item apos item.
     if (hasNaturalPlayback(playlist)) {
+      currentSlot = "";
       if (force || currentItemId === null || currentIndex < 0) {
-        loadVideo(playlist.items[0], 0, 0);
+        loadItem(playlist.items[0], 0, 0);
         preloadNext(playlist, 0);
-      } else if (video.paused) {
+      } else if (currentType === "video" && video.paused && !video.ended) {
         video.play().catch(function () {});
       }
       return;
     }
 
+    // Playlist so com tempos fixos: todas as TVs calculam o item atual pelo relogio do servidor.
     var located = locateItem(playlist, serverNow());
     var item = located.item;
-    var targetSeconds = located.offsetMs / 1000;
 
-    if (force || currentItemId !== item.item_id || currentUrl !== absoluteUrl(item.url)) {
-      loadVideo(item, item.play_until_end ? 0 : located.offsetMs, located.index);
+    if (force || currentSlot !== located.slot || currentItemId !== item.item_id || currentUrl !== absoluteUrl(item.url)) {
+      currentSlot = located.slot;
+      loadItem(item, located.offsetMs, located.index);
       preloadNext(playlist, located.index);
-      return;
+    } else if (currentType === "video") {
+      if (!video.paused && video.readyState >= 2) {
+        var targetSeconds = located.offsetMs / 1000;
+        var driftMs = Math.abs((video.currentTime - targetSeconds) * 1000);
+        var tolerance = state.drift_tolerance_ms || 750;
+        if (driftMs > tolerance) {
+          try {
+            if (isFinite(video.duration) && video.duration > 0) {
+              targetSeconds = Math.min(targetSeconds, Math.max(0, video.duration - 0.25));
+            }
+            video.currentTime = Math.max(0, targetSeconds);
+          } catch (err) {}
+        }
+      } else if (!video.ended) {
+        video.play().catch(function () {});
+      }
     }
 
-    if (!video.paused && video.readyState >= 2) {
-      var driftMs = Math.abs((video.currentTime - targetSeconds) * 1000);
-      var tolerance = state.drift_tolerance_ms || 750;
-      if (driftMs > tolerance) {
-        try {
-          if (isFinite(video.duration) && video.duration > 0) {
-            targetSeconds = Math.min(targetSeconds, Math.max(0, video.duration - 0.25));
-          }
-          video.currentTime = Math.max(0, targetSeconds);
-        } catch (err) {}
-      }
-    } else {
-      video.play().catch(function () {});
-    }
+    // Troca de item na hora exata, em vez de esperar o proximo ciclo de 1s.
+    setAdvanceTimer(located.remainingMs + 30, function () { applyTimeline(false); });
   }
 
   function loadState() {
-    syncing = true;
-    return requestJson("/api/player/" + encodeURIComponent(slug) + "/state")
+    return requestJson("/api/" + encodeURIComponent(kind) + "/" + encodeURIComponent(slug) + "/state")
       .then(function (response) {
         var json = response.json;
         var midpoint = response.started + ((response.ended - response.started) / 2);
@@ -234,20 +355,27 @@
         if (!json.ok) {
           state = null;
           playlistRevision = null;
-          setOverlay("Player nao encontrado", json.message || slug, true);
+          setOverlay("Player nao encontrado", (json.message || "") + " " + playerPath, true);
           return;
         }
 
         if (!json.playlist) {
           state = json;
           playlistRevision = null;
+          loadToken += 1;
           currentItemId = null;
           currentIndex = -1;
+          currentSlot = "";
+          currentType = "";
           currentPlayUntilEnd = false;
+          currentUrl = "";
           clearAdvanceTimer();
+          video.pause();
           video.removeAttribute("src");
           video.load();
-          setOverlay("Aguardando playlist", json.message || slug, true);
+          image.removeAttribute("src");
+          showLayer("");
+          setOverlay("Aguardando playlist", json.message || playerPath, true);
           return;
         }
 
@@ -259,9 +387,6 @@
       })
       .catch(function () {
         setOverlay("Sem conexao com o servidor", "Tentando reconectar automaticamente.", true);
-      })
-      .finally(function () {
-        syncing = false;
       });
   }
 
@@ -277,16 +402,23 @@
   }
 
   video.addEventListener("ended", function () {
-    if (currentPlayUntilEnd) {
+    // Video "tocar inteiro": termina e passa para o proximo item.
+    // Nos demais casos ele segura o ultimo quadro ate acabar o tempo do item.
+    if (currentType === "video" && currentPlayUntilEnd && isNaturalMode()) {
       playNextItem();
-    } else {
-      applyTimeline(true);
     }
   });
 
   video.addEventListener("error", function () {
-    setOverlay("Erro ao carregar video", "Tentando novamente.", true);
-    setTimeout(function () { applyTimeline(true); }, 2000);
+    if (currentType === "video") {
+      handleMediaError("video");
+    }
+  });
+
+  image.addEventListener("error", function () {
+    if (currentType === "image") {
+      handleMediaError("imagem");
+    }
   });
 
   document.addEventListener("visibilitychange", function () {
@@ -299,7 +431,7 @@
     syncClock().then(loadState).catch(loadState);
   });
 
-  setOverlay("Conectando", "/player/" + slug, true);
+  setOverlay("Conectando", playerPath, true);
   syncClock()
     .then(loadState)
     .catch(loadState)

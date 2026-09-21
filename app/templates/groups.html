@@ -7,7 +7,8 @@
   </div>
 </header>
 
-<section class="content-grid split">
+<section class="content-grid {% if can.groups %}split{% endif %}">
+  {% if can.groups %}
   <form class="panel form-panel" method="post" action="/groups">
     <h2>Criar grupo</h2>
     <label>Nome
@@ -26,34 +27,39 @@
     </label>
     <button class="button primary" type="submit">Criar</button>
   </form>
+  {% endif %}
 
   <div class="panel">
-    <div class="panel-title"><h2>Grupos</h2></div>
+    <div class="panel-title"><h2>Grupos</h2><span>{{ groups|length }}</span></div>
     <div class="group-list">
       {% for group in groups %}
       <div class="edit-card">
         <form method="post" action="/groups/{{ group.id }}/update">
-          <div class="edit-grid">
-            <label>Nome<input name="name" value="{{ group.name }}" required></label>
-            <label>Slug<input name="slug" value="{{ group.slug }}" required></label>
-            <label>Playlist
-              <select name="playlist_id">
-                <option value="">Sem playlist</option>
-                {% for playlist in playlists %}
-                <option value="{{ playlist.id }}" {% if group.playlist_id == playlist.id %}selected{% endif %}>{{ playlist.name }}</option>
-                {% endfor %}
-              </select>
-            </label>
-          </div>
+          <fieldset class="plain" {% if not can.groups %}disabled{% endif %}>
+            <div class="edit-grid">
+              <label>Nome<input name="name" value="{{ group.name }}" required></label>
+              <label>Slug<input name="slug" value="{{ group.slug }}" required></label>
+              <label>Playlist
+                <select name="playlist_id">
+                  <option value="">Sem playlist</option>
+                  {% for playlist in playlists %}
+                  <option value="{{ playlist.id }}" {% if group.playlist_id == playlist.id %}selected{% endif %}>{{ playlist.name }}</option>
+                  {% endfor %}
+                </select>
+              </label>
+            </div>
+          </fieldset>
           <div class="card-footer">
             <span>{{ group.screens_total }} TVs</span>
-            <a href="{{ base_url }}/player/{{ group.slug }}" target="_blank">/player/{{ group.slug }}</a>
-            <button class="button" type="submit">Salvar</button>
+            <a href="{{ base_url }}/group/{{ group.slug }}" target="_blank">/group/{{ group.slug }}</a>
+            {% if can.groups %}<button class="button" type="submit">Salvar</button>{% endif %}
           </div>
         </form>
-        <form class="delete-inline" method="post" action="/groups/{{ group.id }}/delete" onsubmit="return confirm('Excluir este grupo? As TVs dele ficarao sem grupo.')">
+        {% if can.groups %}
+        <form class="delete-inline" method="post" action="/groups/{{ group.id }}/delete" data-confirm="As TVs deste grupo ficarão sem grupo." data-confirm-title="Excluir este grupo?" data-confirm-button="Excluir">
           <button class="link danger" type="submit">Excluir grupo</button>
         </form>
+        {% endif %}
       </div>
       {% else %}
       <p class="empty">Nenhum grupo cadastrado.</p>

@@ -5,16 +5,18 @@
     <p class="eyebrow">Operação</p>
     <h1>Painel de controle</h1>
   </div>
+  {% if can.media or can.playlists %}
   <div class="actions">
-    <a class="button" href="/videos">Enviar video</a>
-    <a class="button primary" href="/playlists">Nova playlist</a>
+    {% if can.media %}<a class="button" href="/library">Enviar mídia</a>{% endif %}
+    {% if can.playlists %}<a class="button primary" href="/playlists">Nova playlist</a>{% endif %}
   </div>
+  {% endif %}
 </header>
 
 <section class="metric-grid">
   <div class="metric"><span>TVs</span><strong>{{ screens_count }}</strong></div>
   <div class="metric"><span>Grupos</span><strong>{{ groups_count }}</strong></div>
-  <div class="metric"><span>Videos</span><strong>{{ videos_count }}</strong></div>
+  <div class="metric"><span>Mídias</span><strong>{{ media_count }}</strong></div>
   <div class="metric"><span>Playlists</span><strong>{{ playlists_count }}</strong></div>
 </section>
 
@@ -22,20 +24,20 @@
   <div class="panel">
     <div class="panel-title">
       <h2>TVs cadastradas</h2>
-      <a href="/screens">Gerenciar</a>
+      <a href="/screens">{{ 'Gerenciar' if can.screens else 'Ver todas' }}</a>
     </div>
     <div class="table-wrap">
-      <table>
+      <table class="responsive">
         <thead>
           <tr><th>TV</th><th>Grupo</th><th>Conteúdo efetivo</th><th>Player</th></tr>
         </thead>
         <tbody>
           {% for screen in screens %}
           <tr>
-            <td>{{ screen.name }}</td>
-            <td>{{ screen.group_name or '-' }}</td>
-            <td>{{ screen.playlist_name or screen.inherited_playlist_name or '-' }}</td>
-            <td><a href="{{ base_url }}/player/{{ screen.slug }}" target="_blank">/player/{{ screen.slug }}</a></td>
+            <td data-label="TV">{{ screen.name }}</td>
+            <td data-label="Grupo">{{ screen.group_name or '-' }}</td>
+            <td data-label="Conteúdo">{{ screen.playlist_name or screen.inherited_playlist_name or '-' }}</td>
+            <td data-label="Player"><a href="{{ base_url }}/player/{{ screen.slug }}" target="_blank">/player/{{ screen.slug }}</a></td>
           </tr>
           {% else %}
           <tr><td colspan="4" class="empty">Cadastre uma TV para gerar uma URL de player.</td></tr>
@@ -48,20 +50,20 @@
   <div class="panel">
     <div class="panel-title">
       <h2>Grupos</h2>
-      <a href="/groups">Gerenciar</a>
+      <a href="/groups">{{ 'Gerenciar' if can.groups else 'Ver todos' }}</a>
     </div>
     <div class="table-wrap">
-      <table>
+      <table class="responsive">
         <thead>
           <tr><th>Grupo</th><th>TVs</th><th>Playlist</th><th>Player</th></tr>
         </thead>
         <tbody>
           {% for group in groups %}
           <tr>
-            <td>{{ group.name }}</td>
-            <td>{{ group.screens_total }}</td>
-            <td>{{ group.playlist_name or '-' }}</td>
-            <td><a href="{{ base_url }}/player/{{ group.slug }}" target="_blank">/player/{{ group.slug }}</a></td>
+            <td data-label="Grupo">{{ group.name }}</td>
+            <td data-label="TVs">{{ group.screens_total }}</td>
+            <td data-label="Playlist">{{ group.playlist_name or '-' }}</td>
+            <td data-label="Player"><a href="{{ base_url }}/group/{{ group.slug }}" target="_blank">/group/{{ group.slug }}</a></td>
           </tr>
           {% else %}
           <tr><td colspan="4" class="empty">Crie um grupo para controlar varias TVs juntas.</td></tr>
