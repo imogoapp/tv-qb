@@ -164,6 +164,23 @@ A biblioteca marca esses arquivos com o selo **Verificar**; se não tocarem, con
 - Para vídeos, o tempo padrão é a duração do arquivo (quando o servidor consegue lê-la; caso contrário, 30 s).
 - "Tocar vídeo inteiro" existe só para vídeos; imagens sempre usam o tempo fixo.
 
+### Imagem entrando em "modo relógio" na TV (LG e outras Smart TVs)
+
+Algumas Smart TVs (confirmado na LG/webOS) colocam o navegador em modo de economia de energia quando ficam
+tempo demais sem nenhum vídeo tocando, mesmo com uma imagem parada em tela. Para evitar isso, sempre que o
+`ffmpeg` estiver instalado no computador que roda o servidor, cada imagem enviada ganha automaticamente um
+vídeo mudo de alguns segundos (a mesma imagem, em loop) e é esse vídeo que a TV recebe — o tempo de exibição
+configurado na playlist não muda em nada, só a forma como a imagem é entregue à TV.
+
+- Sem o `ffmpeg` no PATH do servidor, esse vídeo não é gerado e a imagem continua sendo mostrada do jeito
+  antigo (como `<img>`); a biblioteca mostra um aviso **"Sem loop p/ TV"** nas imagens nessa situação.
+- Instale o `ffmpeg` (o mesmo usado na seção de vídeos, abaixo) e reenvie a imagem, ou apague e envie de novo,
+  para gerar o loop.
+- Imagens enviadas antes dessa atualização ganham o loop sozinhas na próxima vez que o servidor for iniciado
+  (contanto que o `ffmpeg` esteja instalado).
+- Se mesmo assim a TV continuar entrando em modo de economia de energia, verifique as configurações de
+  economia de energia/screen saver da própria TV (fora do navegador).
+
 ## Executar no Windows
 
 1. Extraia a pasta.

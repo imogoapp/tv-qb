@@ -55,6 +55,9 @@
               {% if not item.web_safe %}
               <span class="badge warn" title="Este formato depende do codec e pode não tocar nas TVs. Se não tocar, converta para MP4 (H.264).">Verificar</span>
               {% endif %}
+              {% if item.media_type == 'image' and not item.has_loop %}
+              <span class="badge warn" title="{% if ffmpeg_available %}Ainda não gerado; tente reenviar a imagem.{% else %}Instale o ffmpeg no servidor para evitar que a TV entre em modo de economia de energia com imagens paradas.{% endif %}">Sem loop p/ TV</span>
+              {% endif %}
             </td>
             <td data-label="Duração padrão">
               {% if item.default_duration_seconds %}{{ item.default_duration_seconds }}s{% else %}-{% endif %}

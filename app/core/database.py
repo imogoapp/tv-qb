@@ -157,6 +157,10 @@ def init_db() -> None:
             conn.execute("ALTER TABLE media ADD COLUMN default_duration_seconds INTEGER")
         if "slug" not in media_columns:
             conn.execute("ALTER TABLE media ADD COLUMN slug TEXT")
+        if "loop_video_filename" not in media_columns:
+            # Video mudo em loop gerado a partir da imagem (corrige TV entrando em modo de
+            # economia de energia com imagem parada; veja controllers/media.generate_image_loop).
+            conn.execute("ALTER TABLE media ADD COLUMN loop_video_filename TEXT")
         # Midias antigas ganham um slug a partir do titulo (usado em /video/<slug> e /image/<slug>).
         for row in conn.execute("SELECT id, title, media_type FROM media WHERE slug IS NULL OR slug = '' ORDER BY id").fetchall():
             new_slug = unique_slug(conn, "media", slugify(row["title"]), exclude_id=row["id"], media_type=row["media_type"])

@@ -85,7 +85,7 @@ def delete(playlist_id: int) -> None:
 def items_with_media(playlist_id: int) -> list[sqlite3.Row]:
     return fetch_all(
         """
-        SELECT pi.*, m.title AS media_title, m.filename, m.size_bytes, m.media_type
+        SELECT pi.*, m.title AS media_title, m.filename, m.size_bytes, m.media_type, m.loop_video_filename
         FROM playlist_items pi
         JOIN media m ON m.id = pi.media_id
         WHERE pi.playlist_id = ?

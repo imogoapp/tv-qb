@@ -7,6 +7,7 @@
   var playerPath = stage.getAttribute("data-path") || ("/" + kind + "/" + slug);
   var video = document.getElementById("video");
   var image = document.getElementById("image");
+  var logo = document.querySelector(".player-logo");
   var preloadVideo = document.getElementById("preload");
   var overlay = document.getElementById("overlay");
 
@@ -151,6 +152,10 @@
   }
 
   // Mostra so a camada do tipo informado; a outra fica transparente.
+  // A logo so fica no DOM quando nao ha midia tocando: em alguns browsers de TV o
+  // video usa um plano de video por hardware que nao respeita opacity/ordem do DOM,
+  // entao so esconder a logo com opacity nao basta (ela "vaza" por cima do video).
+  // display:none garante que ela some de verdade nesses aparelhos.
   function showLayer(type) {
     if (type === "image") {
       image.classList.add("active");
@@ -161,6 +166,9 @@
     } else {
       video.classList.remove("active");
       image.classList.remove("active");
+    }
+    if (logo) {
+      logo.style.display = type ? "none" : "";
     }
   }
 
@@ -181,26 +189,61 @@
 
   function loadImage(item, offsetMs, token) {
     var url = currentUrl;
+    var loopUrl = item.loop_video_url ? absoluteUrl(item.loop_video_url) : "";
 
-    var reveal = function () {
+    // Mostra a imagem "de verdade" (<img>): caminho de sempre, usado quando a imagem nao tem
+    // video de loop (ffmpeg nao instalado no servidor, geracao falhou, ou autoplay bloqueado).
+    function showAsImage() {
+      var reveal = function () {
+        if (token !== loadToken) {
+          return;
+        }
+        video.pause();
+        video.loop = false;
+        showLayer("image");
+        setOverlay("", "", false);
+        if (isNaturalMode()) {
+          setAdvanceTimer(Math.max(1000, item.duration_ms - offsetMs), playNextItem);
+        }
+      };
+      image.onload = reveal;
+      if (image.src === url && image.complete && image.naturalWidth > 0) {
+        reveal();
+      } else {
+        // Novo arquivo, ou o mesmo que falhou antes: (re)inicia o carregamento.
+        image.src = url;
+      }
+    }
+
+    if (!loopUrl) {
+      showAsImage();
+      return;
+    }
+
+    // Mostra a mesma imagem como um video mudo em loop (gerado no upload). Algumas TVs (LG/webOS
+    // confirmado) entram em modo de economia de energia quando ficam muito tempo sem nenhum video
+    // tocando, mesmo com uma imagem estatica em tela; um <video> resolve isso sem mudar o tempo
+    // de exibicao configurado no item.
+    if (video.src !== loopUrl) {
+      video.src = loopUrl;
+      video.load();
+    }
+    video.loop = true;
+    video.play().then(function () {
       if (token !== loadToken) {
         return;
       }
-      video.pause();
-      showLayer("image");
+      showLayer("video");
       setOverlay("", "", false);
       if (isNaturalMode()) {
         setAdvanceTimer(Math.max(1000, item.duration_ms - offsetMs), playNextItem);
       }
-    };
-
-    image.onload = reveal;
-    if (image.src === url && image.complete && image.naturalWidth > 0) {
-      reveal();
-      return;
-    }
-    // Novo arquivo, ou o mesmo que falhou antes: (re)inicia o carregamento.
-    image.src = url;
+    }).catch(function () {
+      if (token !== loadToken) {
+        return;
+      }
+      showAsImage();
+    });
   }
 
   function loadVideo(item, offsetMs, token) {
@@ -283,8 +326,10 @@
     if (!item) {
       return;
     }
-    var url = absoluteUrl(item.url);
-    if (itemType(item) === "image") {
+    // Imagem com video de loop: pre-carrega o video (e o que vai tocar), nao o <img>.
+    var isImage = itemType(item) === "image";
+    var url = isImage && item.loop_video_url ? absoluteUrl(item.loop_video_url) : absoluteUrl(item.url);
+    if (isImage && !item.loop_video_url) {
       if (preloadImageUrl !== url) {
         preloadImage = new Image();
         preloadImage.src = url;
