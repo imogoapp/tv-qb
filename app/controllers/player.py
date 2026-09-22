@@ -90,6 +90,9 @@ def playlist_payload(playlist_id: int) -> dict[str, Any] | None:
                 # Imagem sempre segue o tempo fixo; so video pode tocar ate o fim.
                 "play_until_end": bool(item["play_until_end"]) and item["media_type"] == "video",
                 "position": item["position"],
+                # Video mudo em loop da mesma imagem (evita TV entrando em modo de economia de
+                # energia); None quando a imagem ainda nao tem loop gerado (ou nao e imagem).
+                "loop_video_url": f"/media/{item['loop_video_filename']}" if item["loop_video_filename"] else None,
             }
         )
 
@@ -130,6 +133,7 @@ def media_payload(media_id: int) -> dict[str, Any] | None:
                 # Video toca inteiro e recomeca (loop); imagem fica pelo tempo padrao e recarrega.
                 "play_until_end": is_video,
                 "position": 1,
+                "loop_video_url": f"/media/{media['loop_video_filename']}" if media["loop_video_filename"] else None,
             }
         ],
     }

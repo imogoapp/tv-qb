@@ -27,6 +27,7 @@ def create_app() -> FastAPI:
     from fastapi.staticfiles import StaticFiles
 
     from . import auth
+    from .controllers.media import backfill_image_loops
     from .core.config import MEDIA_DIR, STATIC_DIR
     from .core.database import init_db
     from .core.errors import register_error_handlers
@@ -38,6 +39,9 @@ def create_app() -> FastAPI:
     async def lifespan(_: FastAPI) -> AsyncIterator[None]:
         init_db()
         auth.init_users_db()
+        # Gera o video em loop das imagens enviadas antes desse recurso existir (sem ffmpeg
+        # instalado, isso e pulado sozinho e as imagens continuam funcionando como antes).
+        backfill_image_loops()
         yield
 
     # Todas as rotas passam por auth.guard: as telas de administracao exigem login e a role certa;
